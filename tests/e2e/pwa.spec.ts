@@ -35,7 +35,8 @@ test.beforeEach(async () => {
     if (rel === '.' || rel === '') rel = 'index.html';
     try {
       const body = readFileSync(join(root, rel));
-      res.writeHead(200, { 'content-type': TYPES[extname(rel)] ?? 'application/octet-stream', 'cache-control': 'no-cache' });
+      // Same caching as GitHub Pages: everything may be reused from the HTTP cache for 10 minutes.
+      res.writeHead(200, { 'content-type': TYPES[extname(rel)] ?? 'application/octet-stream', 'cache-control': 'max-age=600' });
       res.end(body);
     } catch {
       res.writeHead(404).end();
@@ -75,7 +76,7 @@ test('works offline once opened @pwa', async ({ page, context }) => {
   expect(icon).toBe(200);
 });
 
-test('a new deploy shows "Update" and switches version without losing data @pwa', async ({ page }) => {
+test('a new deploy shows "Update" (after the workout) and installs fresh files @pwa', async ({ page }) => {
   await page.goto(base);
   await waitForControl(page);
   await page.getByRole('button', { name: 'Start Pull' }).click();
@@ -83,22 +84,38 @@ test('a new deploy shows "Update" and switches version without losing data @pwa'
   const before = await page.evaluate(() => caches.keys());
   expect(before).toHaveLength(1);
 
-  // Simulate a new deploy: a different service worker version on the server.
+  // A new deploy within 10 minutes: new index.html and a new service worker version.
+  const indexPath = join(root, 'index.html');
+  writeFileSync(indexPath, readFileSync(indexPath, 'utf8').replace('<title>Gym</title>', '<title>Gym</title><meta name="build" content="next">'));
   const swPath = join(root, 'sw.js');
-  const sw = readFileSync(swPath, 'utf8');
-  writeFileSync(swPath, sw.replace(/const VERSION = '([^']+)'/, "const VERSION = '$1-next'"));
+  writeFileSync(swPath, readFileSync(swPath, 'utf8').replace(/const VERSION = '([^']+)'/, "const VERSION = '$1-next'"));
 
-  // Coming back to the app checks for updates.
+  // Coming back to the app checks for updates. The banner waits while a workout is running.
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   const banner = page.getByRole('status').filter({ hasText: 'A new version is ready' });
-  await expect(banner).toBeVisible({ timeout: 15_000 });
+  await expect.poll(() => page.evaluate(async () => !!(await navigator.serviceWorker.getRegistration())?.waiting), { timeout: 15_000 }).toBe(true);
+  await expect(banner).toBeHidden();
+
+  const hold = page.getByRole('button', { name: 'Hold to end workout' });
+  const box = (await hold.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(1000);
+  await page.mouse.up();
+  await page.getByRole('button', { name: 'Discard workout' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Discard' }).click();
+  await expect(banner).toBeVisible();
 
   await Promise.all([page.waitForEvent('load'), banner.getByRole('button', { name: 'Update' }).click()]);
-  await expect(page.getByRole('button', { name: /^Start rest/ })).toBeVisible();
+  await expect(page.getByText('Ready to train?')).toBeVisible();
   await expect(banner).toBeHidden();
   const after = await page.evaluate(() => caches.keys());
   expect(after).toHaveLength(1);
   expect(after[0]).toMatch(/-next$/);
+  // The new cache holds the new index.html, not the old one from the browser's HTTP cache.
+  const cachedIndex = await page.evaluate(async (name) => (await (await caches.open(name)).match('./'))!.text(), after[0]);
+  expect(cachedIndex).toContain('name="build" content="next"');
+  await expect(page.locator('meta[name="build"]')).toHaveCount(1);
 });
 
 test('the first install does not show an update banner @pwa', async ({ page }) => {

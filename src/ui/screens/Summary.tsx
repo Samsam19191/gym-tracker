@@ -1,3 +1,4 @@
+import { useRef } from 'preact/hooks';
 import { typeById } from '../../lib/catalog';
 import { fmtClock, fmtDayShort, fmtTime, plural } from '../../lib/format';
 import { newId } from '../../lib/ids';
@@ -15,6 +16,11 @@ export function Summary() {
   const end = a.endedAt ?? Date.now();
   const exercises = cleanExercises(a.exercises);
   const rest = avgRest(exercises);
+  // The finger that held "end workout" lifts on this screen: only react to touches that start here.
+  const touched = useRef(false);
+  const guard = (fn: () => void) => () => {
+    if (touched.current) fn();
+  };
 
   const discard = async () => {
     const ok = await confirmDialog({ title: 'Discard this workout?', message: "It won't be saved anywhere.", confirmLabel: 'Discard', danger: true });
@@ -24,7 +30,7 @@ export function Summary() {
   };
 
   return (
-    <main class="screen summary" style={{ '--c': type.color }}>
+    <main class="screen summary" style={{ '--c': type.color }} onPointerDownCapture={() => (touched.current = true)}>
       <div class="donecheck">
         <Icon name="check" />
       </div>
@@ -57,17 +63,17 @@ export function Summary() {
         <button
           type="button"
           class="btn primary block"
-          onClick={() => {
+          onClick={guard(() => {
             dispatch((x) => saveActiveWorkout(x, newId()));
             toast('Workout saved', { tone: 'success' });
-          }}
+          })}
         >
           Save workout
         </button>
-        <button type="button" class="btn ghost block" onClick={() => dispatch(resumeWorkout)}>
+        <button type="button" class="btn ghost block" onClick={guard(() => dispatch(resumeWorkout))}>
           Back to workout
         </button>
-        <button type="button" class="link danger-text" onClick={() => void discard()}>
+        <button type="button" class="link danger-text" onClick={guard(() => void discard())}>
           Discard workout
         </button>
       </div>

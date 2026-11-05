@@ -23,18 +23,32 @@ export function LogWorkoutSheet({ onClose, typeId, day, editing }: { onClose: ()
   const editingType = editing ? d.types.find((t) => t.id === editing.typeId) : undefined;
   const choices = editingType?.deleted ? [...types, editingType] : types;
 
-  const defaultEnd = roundDown15(now);
+  // Default: the last 90 minutes. The date is the start's day, so just after midnight it is still yesterday.
+  const [init] = useState(() => {
+    const defaultEnd = roundDown15(now);
+    const defaultStart = defaultEnd - 90 * 60_000;
+    return {
+      date: editing ? dayKey(editing.start) : (day ?? dayKey(defaultStart)),
+      from: editing ? timeKey(editing.start) : timeKey(defaultStart),
+      to: editing ? timeKey(editing.end) : timeKey(defaultEnd),
+    };
+  });
   const [type, setType] = useState<string | null>(editing?.typeId ?? typeId ?? null);
-  const [date, setDate] = useState(editing ? dayKey(editing.start) : (day ?? dayKey(now)));
-  const [from, setFrom] = useState(editing ? timeKey(editing.start) : timeKey(defaultEnd - 90 * 60_000));
-  const [to, setTo] = useState(editing ? timeKey(editing.end) : timeKey(defaultEnd));
+  const [date, setDate] = useState(init.date);
+  const [from, setFrom] = useState(init.from);
+  const [to, setTo] = useState(init.to);
   const [error, setError] = useState<string | null>(null);
 
-  const start = date && from ? combineDayTime(date, from) : NaN;
-  let end = date && to ? combineDayTime(date, to) : NaN;
-  const overnight = Number.isFinite(start) && Number.isFinite(end) && end <= start && to !== from;
-  if (overnight) end = combineDayTime(dayKey(addDays(start, 1)), to);
+  // When editing, untouched fields keep the exact recorded time (the form only shows minutes).
+  const keepStart = !!editing && date === init.date && from === init.from;
+  const keepEnd = !!editing && date === init.date && to === init.to;
+  const start = keepStart ? editing.start : date && from ? combineDayTime(date, from) : NaN;
+  let end = keepEnd ? editing.end : date && to ? combineDayTime(date, to) : NaN;
+  if (!keepEnd && Number.isFinite(start) && Number.isFinite(end) && end <= start && to !== from) {
+    end = combineDayTime(dayKey(addDays(start, 1)), to);
+  }
   const valid = Number.isFinite(start) && Number.isFinite(end) && end > start;
+  const overnight = valid && dayKey(end) !== dayKey(start);
 
   const save = () => {
     const input = { typeId: type ?? '', start, end };

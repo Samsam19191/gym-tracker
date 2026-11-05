@@ -31,10 +31,10 @@ export async function importBackup(): Promise<void> {
     toast(e instanceof Error ? e.message : "Couldn't read this file", { tone: 'error', duration: 5000 });
     return;
   }
-  const { data, exportedAt } = parsed;
+  const { data, exportedAt, skipped } = parsed;
   const ok = await confirmDialog({
     title: 'Replace all data?',
-    message: `This backup${exportedAt ? ` from ${fmtDayMonth(exportedAt, Date.now())}` : ''} has ${plural(data.workouts.length, 'workout')}, ${plural(data.machines.length, 'machine')} and ${plural(data.weights.length, 'logged weight')}. Everything currently in the app will be replaced.`,
+    message: `This backup${exportedAt ? ` from ${fmtDayMonth(exportedAt, Date.now())}` : ''} has ${plural(data.workouts.length, 'workout')}, ${plural(data.machines.length, 'machine')} and ${plural(data.weights.length, 'logged weight')}.${skipped ? ` ${plural(skipped, 'damaged record')} will be skipped.` : ''} Everything currently in the app will be replaced.`,
     confirmLabel: 'Replace',
     danger: true,
   });

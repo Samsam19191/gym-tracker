@@ -142,19 +142,43 @@ describe('next exercise', () => {
     let d = startRest(started(), T0 + 10 * S);
     d = nextExercise(d);
     expect(d.active!.rest).toEqual({ start: T0 + 10 * S, exercise: 0 });
-    expect(canUndo(d.active!)).toBe(false);
     d = endRest(d, T0 + 100 * S);
     expect(d.active!.exercises).toEqual([{ sets: 1, rests: [90 * S] }, { sets: 0, rests: [] }]);
+  });
+
+  it('-1 on an empty exercise undoes the "Next exercise" tap', () => {
+    let d = startRest(started(), T0 + 10 * S);
+    d = endRest(d, T0 + 70 * S);
+    d = nextExercise(d);
+    expect(canUndo(d.active!)).toBe(true);
+    d = undoSet(d);
+    expect(d.active!.exercises).toEqual([{ sets: 1, rests: [60 * S] }]);
+    // Back on exercise 1: the next -1 removes its set as usual.
+    d = undoSet(d);
+    expect(d.active!.exercises).toEqual([{ sets: 0, rests: [] }]);
+    expect(canUndo(d.active!)).toBe(false);
+  });
+
+  it('-1 on an empty exercise during a rest keeps the rest running on the previous one', () => {
+    let d = startRest(started(), T0 + 10 * S);
+    d = nextExercise(d);
+    d = undoSet(d);
+    expect(d.active!.exercises).toEqual([{ sets: 1, rests: [] }]);
+    expect(d.active!.rest).toEqual({ start: T0 + 10 * S, exercise: 0 });
+    d = endRest(d, T0 + 40 * S);
+    expect(d.active!.exercises).toEqual([{ sets: 1, rests: [30 * S] }]);
   });
 });
 
 describe('ending, resuming, saving', () => {
-  it('ending closes a running rest and freezes the end time', () => {
+  it('ending keeps the last set but drops the open rest (it is not a rest between sets)', () => {
     let d = startRest(started(), T0 + 10 * S);
-    d = endWorkout(d, T0 + 40 * S);
-    expect(d.active!.endedAt).toBe(T0 + 40 * S);
+    d = endRest(d, T0 + 70 * S);
+    d = startRest(d, T0 + 120 * S);
+    d = endWorkout(d, T0 + 900 * S);
+    expect(d.active!.endedAt).toBe(T0 + 900 * S);
     expect(d.active!.rest).toBeNull();
-    expect(d.active!.exercises[0].rests).toEqual([30 * S]);
+    expect(d.active!.exercises[0]).toEqual({ sets: 2, rests: [60 * S] });
   });
 
   it('no actions are possible on an ended workout', () => {

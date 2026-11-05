@@ -4,22 +4,27 @@ let waiting: ServiceWorker | null = null;
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
+function watchInstalling(sw: ServiceWorker | null) {
+  if (!sw) return;
+  const check = () => {
+    // Only an update if a previous version is already in control (not the very first install).
+    if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+      waiting = sw;
+      emit();
+    }
+  };
+  sw.addEventListener('statechange', check);
+  check();
+}
+
 function track(reg: ServiceWorkerRegistration) {
   if (reg.waiting && navigator.serviceWorker.controller) {
     waiting = reg.waiting;
     emit();
   }
-  reg.addEventListener('updatefound', () => {
-    const sw = reg.installing;
-    if (!sw) return;
-    sw.addEventListener('statechange', () => {
-      // Only an update if a previous version is already in control (not the very first install).
-      if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-        waiting = sw;
-        emit();
-      }
-    });
-  });
+  // An update may already be installing by the time registration resolves.
+  watchInstalling(reg.installing);
+  reg.addEventListener('updatefound', () => watchInstalling(reg.installing));
 }
 
 export function registerServiceWorker(): void {

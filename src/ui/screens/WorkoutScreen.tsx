@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { typeById } from '../../lib/catalog';
 import { fmtClock, plural } from '../../lib/format';
-import type { ActiveWorkout } from '../../lib/model';
 import { canNextExercise, canUndo, currentExercise, endRest, endWorkout, nextExercise, startRest, undoSet } from '../../lib/workout';
 import { playRestBeep, unlockAudio } from '../../platform/sound';
 import { nudgeKeepAwake, useWakeStatus } from '../../platform/wakelock';
@@ -25,17 +24,24 @@ function WakePill({ enabled }: { enabled: boolean }) {
   );
 }
 
-function useRestBeep(a: ActiveWorkout, now: number, targetMs: number | null, enabled: boolean) {
+/** Mounted for the whole app so the rest beep also plays while looking at weights or history. */
+export function RestBeeper() {
+  const d = useData();
+  const rest = d.active && d.active.endedAt === null ? d.active.rest : null;
+  const targetMs = d.settings.restTargetSec ? d.settings.restTargetSec * 1000 : null;
+  const enabled = d.settings.restSound && targetMs !== null && rest !== null;
+  const now = useNow(250, enabled);
   const beeped = useRef<number | null>(null);
   useEffect(() => {
-    if (!enabled || !targetMs || !a.rest) return;
-    const elapsed = now - a.rest.start;
+    if (!enabled || !rest || targetMs === null) return;
+    const elapsed = now - rest.start;
     // Only beep live: not when coming back to the app long after the target.
-    if (elapsed >= targetMs && elapsed < targetMs + 3000 && beeped.current !== a.rest.start) {
-      beeped.current = a.rest.start;
+    if (elapsed >= targetMs && elapsed < targetMs + 3000 && beeped.current !== rest.start) {
+      beeped.current = rest.start;
       playRestBeep();
     }
-  }, [now, a.rest, targetMs, enabled]);
+  }, [now, rest, targetMs, enabled]);
+  return null;
 }
 
 export function WorkoutScreen({ onOpenWeights }: { onOpenWeights: () => void }) {
@@ -51,7 +57,6 @@ export function WorkoutScreen({ onOpenWeights }: { onOpenWeights: () => void }) 
   const restMs = a.rest ? now - a.rest.start : 0;
   const targetMs = d.settings.restTargetSec ? d.settings.restTargetSec * 1000 : null;
   const reached = targetMs !== null && restMs >= targetMs;
-  useRestBeep(a, now, targetMs, d.settings.restSound);
 
   const tap = (fn: Parameters<typeof dispatch>[0]) => {
     unlockAudio();

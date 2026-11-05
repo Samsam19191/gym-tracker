@@ -59,14 +59,20 @@ export function endRest(d: AppData, now: number): AppData {
 }
 
 export function canUndo(a: ActiveWorkout): boolean {
-  return isRunning(a) && currentExercise(a).sets > 0;
+  return isRunning(a) && (currentExercise(a).sets > 0 || a.exercises.length > 1);
 }
 
-/** Undo the last counted set of the current exercise (and its rest, if any). */
+/**
+ * Undo the last counted set of the current exercise (and its rest, if any).
+ * On an empty exercise, undo the "Next exercise" tap instead and go back to the previous one.
+ */
 export function undoSet(d: AppData): AppData {
   const a = d.active;
   if (!a || !canUndo(a)) return d;
   const idx = currentExerciseIndex(a);
+  if (a.exercises[idx].sets === 0) {
+    return withActive(d, { ...a, exercises: a.exercises.slice(0, idx), lastToggleAt: null });
+  }
   const cur = a.exercises[idx];
   const sets = cur.sets - 1;
   const restIsOnCurrent = a.rest !== null && a.rest.exercise === idx;
@@ -85,10 +91,14 @@ export function nextExercise(d: AppData): AppData {
   return withActive(d, { ...a, exercises: [...a.exercises, { sets: 0, rests: [] }] });
 }
 
+/**
+ * The last set is counted by tapping Start rest, so a rest is almost always running at the end.
+ * That time isn't a rest between sets, so it is dropped instead of skewing the average.
+ */
 export function endWorkout(d: AppData, now: number): AppData {
   const a = d.active;
   if (!isRunning(a)) return d;
-  return withActive(d, { ...closeRest(a, now), endedAt: Math.max(now, a.start) });
+  return withActive(d, { ...a, rest: null, endedAt: Math.max(now, a.start) });
 }
 
 export function resumeWorkout(d: AppData): AppData {

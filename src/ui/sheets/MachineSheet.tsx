@@ -19,9 +19,15 @@ export function MachineSheet({ onClose, editing, onDeleted, defaultTypeId }: { o
   const [error, setError] = useState<string | null>(null);
   const [newType, setNewType] = useState<string | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
+  const newTypeRef = useRef<HTMLInputElement>(null);
+  const addingType = newType !== null;
   useEffect(() => {
     if (!editing) nameRef.current?.focus();
   }, []);
+  // Focus once when the field appears (a ref callback would steal focus on every keystroke).
+  useEffect(() => {
+    if (addingType) newTypeRef.current?.focus();
+  }, [addingType]);
 
   const types = liveTypes(d);
 
@@ -121,7 +127,7 @@ export function MachineSheet({ onClose, editing, onDeleted, defaultTypeId }: { o
               placeholder="Type name"
               maxLength={40}
               value={newType}
-              ref={(el) => el?.focus()}
+              ref={newTypeRef}
               onInput={(e) => {
                 setNewType((e.target as HTMLInputElement).value);
                 setError(null);

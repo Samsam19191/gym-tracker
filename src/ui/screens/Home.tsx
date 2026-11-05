@@ -4,7 +4,7 @@ import { shouldRemindBackup, snoozeBackup } from '../../lib/backup';
 import { fmtDayLong, fmtDurationCompact, fmtRelativeDay, plural, WEEKDAYS } from '../../lib/format';
 import { lastWorkoutOfType, upNextTypeId, weekStrip, weekSummary } from '../../lib/stats';
 import { startWorkout } from '../../lib/workout';
-import { nudgeKeepAwake } from '../../platform/wakelock';
+import { setKeepAwake } from '../../platform/wakelock';
 import { unlockAudio } from '../../platform/sound';
 import { IconButton } from '../components';
 import { Icon } from '../icons';
@@ -25,8 +25,9 @@ export function Home({ onOpenSettings }: { onOpenSettings: () => void }) {
 
   const start = (typeId: string) => {
     unlockAudio();
-    dispatch((x) => startWorkout(x, typeId, Date.now()));
-    nudgeKeepAwake();
+    const next = dispatch((x) => startWorkout(x, typeId, Date.now()));
+    // Ask for the wake lock during the tap itself: some browsers only grant it then.
+    if (next.active && next.settings.keepScreenOn) setKeepAwake(true);
   };
 
   return (

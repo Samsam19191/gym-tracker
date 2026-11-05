@@ -10,7 +10,7 @@ export function unlockAudio(): void {
       if (!Ctor) return;
       ctx = new Ctor();
     }
-    if (ctx.state === 'suspended') void ctx.resume();
+    if (ctx.state !== 'running') void ctx.resume();
     const buffer = ctx.createBuffer(1, 1, 22050);
     const src = ctx.createBufferSource();
     src.buffer = buffer;
@@ -38,7 +38,7 @@ function tone(c: AudioContext, freq: number, at: number, length: number) {
 export function playRestBeep(): void {
   if (!ctx) return;
   try {
-    if (ctx.state === 'suspended') void ctx.resume();
+    if (ctx.state !== 'running') void ctx.resume();
     const t = ctx.currentTime + 0.01;
     tone(ctx, 880, t, 0.16);
     tone(ctx, 1320, t + 0.2, 0.26);

@@ -29,8 +29,10 @@ export function lastDate(entries: WeightEntry[]): string | null {
 
 export function parseKg(input: string): number | null {
   const v = Number(input.replace(',', '.').trim());
-  if (!input.trim() || !Number.isFinite(v) || v <= 0 || v > KG_MAX) return null;
-  return Math.round(v * 100) / 100;
+  if (!input.trim() || !Number.isFinite(v)) return null;
+  // Round first: 0.001 would otherwise pass the check and be stored as 0.
+  const kg = Math.round(v * 100) / 100;
+  return kg > 0 && kg <= KG_MAX ? kg : null;
 }
 
 export type LogResult = 'added' | 'raised' | 'kept';

@@ -11,7 +11,7 @@ import { MachineScreen } from './screens/MachineScreen';
 import { Settings } from './screens/Settings';
 import { Summary } from './screens/Summary';
 import { Weights } from './screens/Weights';
-import { WorkoutScreen } from './screens/WorkoutScreen';
+import { RestBeeper, WorkoutScreen } from './screens/WorkoutScreen';
 import { useData, useNow } from './store';
 import { useToast } from './toast';
 
@@ -57,9 +57,10 @@ function ToastHost() {
   );
 }
 
-function UpdateBanner() {
+/** Waits until no workout is in progress, so it never sits on top of the workout buttons. */
+function UpdateBanner({ hidden }: { hidden: boolean }) {
   const available = useUpdateAvailable();
-  if (!available) return null;
+  if (!available || hidden) return null;
   return (
     <div class="update" role="status">
       <span>A new version is ready</span>
@@ -128,7 +129,8 @@ export function App({ startupWarning }: { startupWarning: string | null }) {
           ))}
         </nav>
       )}
-      <UpdateBanner />
+      <UpdateBanner hidden={!!a} />
+      <RestBeeper />
       <ToastHost />
       <DialogHost />
     </div>

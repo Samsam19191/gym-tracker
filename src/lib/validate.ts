@@ -86,3 +86,41 @@ export function parseAppData(raw: unknown): AppData {
   const weights = arr(raw.weights, 'weights').map(weight);
   return { version: 1, types, workouts, machines, weights, active: active(raw.active), settings: settings(raw.settings) };
 }
+
+function keepValid<T>(items: unknown[], parse: (v: unknown, i: number) => T): { ok: T[]; bad: number } {
+  const ok: T[] = [];
+  let bad = 0;
+  items.forEach((v, i) => {
+    try {
+      ok.push(parse(v, i));
+    } catch {
+      bad++;
+    }
+  });
+  return { ok, bad };
+}
+
+/**
+ * Like parseAppData, but one damaged record (a workout, a weight...) is skipped instead of
+ * making everything unreadable. Only a broken overall structure still throws.
+ */
+export function parseAppDataLenient(raw: unknown): { data: AppData; dropped: number } {
+  if (!isObj(raw)) fail('not an object');
+  if (raw.version !== 1) fail(`unsupported version ${String(raw.version)}`);
+  const types = keepValid(arr(raw.types, 'workout types'), type);
+  const workouts = keepValid(arr(raw.workouts, 'workouts'), workout);
+  const machines = keepValid(arr(raw.machines, 'machines'), machine);
+  const weights = keepValid(arr(raw.weights, 'weights'), weight);
+  let activeWorkout: ActiveWorkout | null = null;
+  let activeBad = 0;
+  try {
+    activeWorkout = active(raw.active);
+  } catch {
+    activeBad = 1;
+  }
+  const dropped = types.bad + workouts.bad + machines.bad + weights.bad + activeBad;
+  return {
+    data: { version: 1, types: types.ok, workouts: workouts.ok, machines: machines.ok, weights: weights.ok, active: activeWorkout, settings: settings(raw.settings) },
+    dropped,
+  };
+}

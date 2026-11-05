@@ -3,7 +3,7 @@ import { applyImport, backupFileName, makeBackup, markBackedUp, readBackup, shou
 import { createDefaultData } from '../../src/lib/defaults';
 import type { AppData } from '../../src/lib/model';
 import { loadData, saveData, STORAGE_KEY } from '../../src/lib/storage';
-import { parseAppData } from '../../src/lib/validate';
+import { parseAppData, parseAppDataLenient } from '../../src/lib/validate';
 import {
   addMachine,
   bestKg,
@@ -114,6 +114,10 @@ describe('weights', () => {
     expect(parseKg('-5')).toBeNull();
     expect(parseKg('abc')).toBeNull();
     expect(parseKg('5000')).toBeNull();
+    // Tiny values that would round to 0 kg are refused, not stored as 0.
+    expect(parseKg('0.001')).toBeNull();
+    expect(parseKg('0,004')).toBeNull();
+    expect(parseKg('0.005')).toBe(0.01);
   });
 
   it('machine list: filter, accent-insensitive search, sorted by name', () => {
@@ -147,6 +151,29 @@ describe('validation', () => {
     expect(() => parseAppData({ ...createDefaultData(), types: [{ id: 'a', name: 'A', color: '#fff', order: 0, kind: 'x' }] })).toThrow(/kind/);
   });
 
+  it('lenient parsing skips only the damaged records', () => {
+    let d = withMachine();
+    d = logWeight(d, 'm1', '2026-11-01', 60, 'a').data;
+    d = logWeight(d, 'm1', '2026-11-02', 62.5, 'b').data;
+    const raw = JSON.parse(JSON.stringify(d));
+    raw.weights[0].kg = 0;
+    raw.workouts.push({ id: 'broken' });
+    const { data, dropped } = parseAppDataLenient(raw);
+    expect(dropped).toBe(2);
+    expect(data.weights.map((x) => x.id)).toEqual(['b']);
+    expect(data.machines).toHaveLength(1);
+    expect(() => parseAppDataLenient({ version: 1 })).toThrow(/workout types/);
+  });
+
+  it('a damaged current workout is dropped, the rest is kept', () => {
+    const raw = JSON.parse(JSON.stringify(withMachine()));
+    raw.active = { typeId: 'push', start: 'yesterday' };
+    const { data, dropped } = parseAppDataLenient(raw);
+    expect(dropped).toBe(1);
+    expect(data.active).toBeNull();
+    expect(data.machines).toHaveLength(1);
+  });
+
   it('fills missing settings with defaults', () => {
     const raw = { ...createDefaultData(), settings: { keepScreenOn: false } };
     const d = parseAppData(raw);
@@ -164,6 +191,15 @@ describe('backup', () => {
     expect(back.exportedAt).toBe(NOW);
     expect(back.data.active).toBeNull();
     expect(back.data.machines).toEqual(d.machines);
+  });
+
+  it('a backup with a damaged record imports the rest and says how many were skipped', () => {
+    const d = logWeight(withMachine(), 'm1', '2026-11-01', 60, 'a').data;
+    const json = JSON.parse(makeBackup(d, NOW));
+    json.data.weights.push({ id: 'bad', machineId: 'm1', date: 'nope', kg: 5 });
+    const r = readBackup(JSON.stringify(json));
+    expect(r.skipped).toBe(1);
+    expect(r.data.weights.map((w) => w.id)).toEqual(['a']);
   });
 
   it('rejects other files', () => {
@@ -243,6 +279,21 @@ describe('storage', () => {
     expect(r.warning).toMatch(/damaged/);
     expect(r.data).toEqual(createDefaultData());
     expect(s.getItem(`${STORAGE_KEY}:corrupt:${NOW}`)).toBe('{broken');
+  });
+
+  it('one damaged record: skipped with a warning, original copy kept, cleaned data saved', () => {
+    const s = new MemStorage();
+    const d = logWeight(withMachine(), 'm1', '2026-11-01', 60, 'a').data;
+    const raw = JSON.parse(JSON.stringify(d));
+    raw.weights.push({ id: 'z', machineId: 'm1', date: '2026-11-02', kg: 0 });
+    s.setItem(STORAGE_KEY, JSON.stringify(raw));
+    const r = loadData(s, NOW);
+    expect(r.warning).toBe('1 damaged record was skipped. Everything else is fine.');
+    expect(r.data.weights.map((w) => w.id)).toEqual(['a']);
+    expect(r.data.machines).toHaveLength(1);
+    expect(JSON.parse(s.getItem(`${STORAGE_KEY}:corrupt:${NOW}`)!).weights).toHaveLength(2);
+    // Saved back cleaned, so the warning shows only once.
+    expect(loadData(s, NOW + 1).warning).toBeNull();
   });
 
   it('reports failed writes', () => {

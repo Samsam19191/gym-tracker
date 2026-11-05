@@ -125,6 +125,12 @@ describe('month and week stats', () => {
     expect(s.perWeek).toBeCloseTo(1);
   });
 
+  it('one workout on the 1st is not "7 per week"', () => {
+    const one = [w('x', 'push', at(2026, 11, 1), 60)];
+    expect(monthStats(one, 2026, 11, at(2026, 11, 1, 20)).perWeek).toBe(1);
+    expect(monthStats(one, 2026, 11, at(2026, 11, 3, 20)).perWeek).toBe(1);
+  });
+
   it('future or empty months', () => {
     expect(monthStats([], 2026, 11, at(2026, 10, 5))).toEqual({ count: 0, avgDurationMs: null, perWeek: null });
     expect(monthStats([], 2026, 8, at(2026, 10, 5)).perWeek).toBe(0);

@@ -29,7 +29,7 @@ export interface MonthStats {
   perWeek: number | null;
 }
 
-/** perWeek uses the days elapsed so far for the current month, so early-month numbers aren't diluted. */
+/** perWeek uses the days elapsed so far in the current month (at least 7), so early-month numbers aren't diluted. */
 export function monthStats(ws: Workout[], year: number, month: number, now: number): MonthStats {
   const count = ws.length;
   const avgDurationMs = count ? ws.reduce((s, w) => s + workoutDuration(w), 0) / count : null;
@@ -39,7 +39,8 @@ export function monthStats(ws: Workout[], year: number, month: number, now: numb
   if (year === today.getFullYear() && month === today.getMonth()) days = today.getDate();
   else if (year * 12 + month > today.getFullYear() * 12 + today.getMonth()) days = 0;
   else days = total;
-  const perWeek = days === 0 ? null : count / (days / 7);
+  // At least a full week, so one workout on the 1st doesn't read as "7 per week".
+  const perWeek = days === 0 ? null : count / (Math.max(days, 7) / 7);
   return { count, avgDurationMs, perWeek };
 }
 

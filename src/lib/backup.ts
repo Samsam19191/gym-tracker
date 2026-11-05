@@ -1,6 +1,6 @@
 import { dayKey } from './dates';
 import type { AppData } from './model';
-import { DataError, parseAppData } from './validate';
+import { DataError, parseAppDataLenient } from './validate';
 
 export const BACKUP_APP = 'gym-tracker';
 export const REMIND_AFTER_DAYS = 30;
@@ -15,7 +15,7 @@ export function backupFileName(now: number): string {
   return `gym-tracker-backup-${dayKey(now)}.json`;
 }
 
-export function readBackup(text: string): { data: AppData; exportedAt: number | null } {
+export function readBackup(text: string): { data: AppData; exportedAt: number | null; skipped: number } {
   let json: unknown;
   try {
     json = JSON.parse(text);
@@ -26,8 +26,8 @@ export function readBackup(text: string): { data: AppData; exportedAt: number | 
     throw new DataError("This file isn't a Gym Tracker backup");
   }
   const j = json as { exportedAt?: unknown; data?: unknown };
-  const data = parseAppData(j.data);
-  return { data: { ...data, active: null }, exportedAt: typeof j.exportedAt === 'number' ? j.exportedAt : null };
+  const { data, dropped } = parseAppDataLenient(j.data);
+  return { data: { ...data, active: null }, exportedAt: typeof j.exportedAt === 'number' ? j.exportedAt : null, skipped: dropped };
 }
 
 /** Remind when there is something worth saving and no backup in the last 30 days (unless snoozed). */

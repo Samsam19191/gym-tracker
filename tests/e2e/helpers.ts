@@ -144,3 +144,37 @@ export async function endRest(page: Page): Promise<void> {
   await page.clock.fastForward(1000);
   await page.getByRole('button', { name: /^End rest/ }).click();
 }
+
+/** Replace Web Audio with a fake that counts beeps (two tones each) in window.__tones. */
+export async function fakeAudio(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __tones: number };
+    w.__tones = 0;
+    const param = { value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} };
+    class FakeContext {
+      state = 'running';
+      currentTime = 0;
+      destination = {};
+      resume() {
+        return Promise.resolve();
+      }
+      createBuffer() {
+        return {};
+      }
+      createBufferSource() {
+        return { buffer: null, connect() {}, start() {} };
+      }
+      createOscillator() {
+        return { type: 'sine', frequency: { ...param }, connect: (n: unknown) => n, start: () => (w.__tones += 1), stop() {} };
+      }
+      createGain() {
+        return { gain: { ...param }, connect: (n: unknown) => n };
+      }
+    }
+    Object.defineProperty(window, 'AudioContext', { value: FakeContext, configurable: true });
+  });
+}
+
+export async function tones(page: Page): Promise<number> {
+  return page.evaluate(() => (window as unknown as { __tones: number }).__tones);
+}

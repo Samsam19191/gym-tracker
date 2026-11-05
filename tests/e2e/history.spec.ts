@@ -7,9 +7,9 @@ test.describe('history', () => {
     await openApp(page, { data: seedData() });
     await tab(page, 'History').click();
     await expect(page.getByRole('button', { name: /^November 2026/ })).toBeVisible();
-    // November so far: Shoulders 1st, Push 3rd, Pull 4th, over 5 days.
+    // November so far: Shoulders 1st, Push 3rd, Pull 4th. Under a week in: counted over one week.
     await expect(page.locator('.tile').nth(0)).toContainText('3');
-    await expect(page.locator('.tile').nth(2)).toContainText('4.2');
+    await expect(page.locator('.tile').nth(2)).toContainText('3.0');
     await expect(page.getByRole('button', { name: 'Thursday 5 November' })).toHaveClass(/today/);
     await expect(page.getByRole('button', { name: 'Friday 6 November' })).toBeDisabled();
 

@@ -6,7 +6,9 @@ const CACHE = `gym-tracker-${VERSION}`;
 
 self.addEventListener('install', (event) => {
   // No skipWaiting here: the new version waits until the user taps "Update" in the app.
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
+  // cache: 'reload' skips the browser's HTTP cache (GitHub Pages sends max-age=600), so a quick second
+  // deploy can't pair a stale index.html with new files.
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS.map((url) => new Request(url, { cache: 'reload' })))));
 });
 
 self.addEventListener('activate', (event) => {
