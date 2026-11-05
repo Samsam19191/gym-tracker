@@ -9,7 +9,7 @@
     "preview": "vite preview --port 4173 --strictPort",
     "test": "TZ=Europe/Paris vitest run",
     "test:watch": "TZ=Europe/Paris vitest",
-    "e2e": "playwright test",
+    "e2e": "TZ=Europe/Paris playwright test",
     "icons": "node scripts/make-icons.mjs"
   },
   "dependencies": {

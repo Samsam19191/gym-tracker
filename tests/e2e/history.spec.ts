@@ -59,7 +59,7 @@ test.describe('history', () => {
     await expect(page.getByRole('button', { name: 'Thursday 22 October: Push' })).toBeVisible();
     const w = (await stored(page)).workouts.find((x) => x.id === 'oct22')!;
     expect(w.typeId).toBe('push');
-    expect(new Date(w.end).getHours()).toBe(20);
+    expect(w.end).toBe(new Date('2026-10-22T20:00:00+02:00').getTime());
     // Sets recorded live are kept when editing.
     expect(w.exercises.length).toBe(5);
   });
