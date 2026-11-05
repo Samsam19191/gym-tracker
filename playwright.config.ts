@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 4173;
+// LIVE_URL=https://samsam19191.github.io/gym-tracker/ runs the suite against the deployed app instead of a local build.
+const LIVE = process.env.LIVE_URL;
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -10,19 +12,21 @@ export default defineConfig({
   workers: process.env.CI ? 2 : 4,
   reporter: [['list']],
   use: {
-    baseURL: `http://localhost:${PORT}/gym-tracker/`,
+    baseURL: LIVE ?? `http://localhost:${PORT}/gym-tracker/`,
     timezoneId: 'Europe/Paris',
     locale: 'en-GB',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     serviceWorkers: 'block',
   },
-  webServer: {
-    command: `npm run build && npx vite preview --port ${PORT} --strictPort`,
-    url: `http://localhost:${PORT}/gym-tracker/`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: LIVE
+    ? undefined
+    : {
+        command: `npm run build && npx vite preview --port ${PORT} --strictPort`,
+        url: `http://localhost:${PORT}/gym-tracker/`,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      },
   projects: [
     {
       // Home Screen app on a modern iPhone: the full screen minus the notch and home bar.
