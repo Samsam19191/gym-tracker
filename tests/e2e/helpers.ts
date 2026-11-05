@@ -101,3 +101,46 @@ export function sheet(page: Page, name: string | RegExp) {
 export function confirmBox(page: Page) {
   return page.getByRole('alertdialog');
 }
+
+/** Replace navigator.wakeLock with a fake that records requests and releases in window.__wake. */
+export async function fakeWakeLock(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const log = { requests: 0, releases: 0, held: false };
+    (window as unknown as { __wake: typeof log }).__wake = log;
+    const fake = {
+      request: async () => {
+        log.requests++;
+        log.held = true;
+        const target = new EventTarget();
+        const sentinel = Object.assign(target, {
+          released: false,
+          type: 'screen',
+          release: async () => {
+            if (sentinel.released) return;
+            sentinel.released = true;
+            log.releases++;
+            log.held = false;
+            target.dispatchEvent(new Event('release'));
+          },
+        });
+        return sentinel;
+      },
+    };
+    Object.defineProperty(navigator, 'wakeLock', { value: fake, configurable: true });
+  });
+}
+
+export async function wakeLog(page: Page): Promise<{ requests: number; releases: number; held: boolean }> {
+  return page.evaluate(() => (window as unknown as { __wake: { requests: number; releases: number; held: boolean } }).__wake);
+}
+
+/** Tap the big button after letting enough time pass for the double-tap guard. */
+export async function startRest(page: Page): Promise<void> {
+  await page.clock.fastForward(1000);
+  await page.getByRole('button', { name: /^Start rest/ }).click();
+}
+
+export async function endRest(page: Page): Promise<void> {
+  await page.clock.fastForward(1000);
+  await page.getByRole('button', { name: /^End rest/ }).click();
+}
