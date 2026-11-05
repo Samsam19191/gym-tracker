@@ -64,9 +64,9 @@ export function IconButton({ icon, label, onClick, class: cls, disabled }: { ico
 
 export function TypeChip({ type, small }: { type: WorkoutType; small?: boolean }) {
   return (
-    <span class={small ? 'chip sm' : 'chip'} style={{ '--c': type.color }}>
+    <span class={small ? 'chip sm' : 'chip'} style={{ '--c': type.color }} title={type.name}>
       <span class="dot" />
-      {type.name}
+      <span class="chip-name">{type.name}</span>
     </span>
   );
 }

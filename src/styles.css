@@ -196,6 +196,24 @@ input {
   background: var(--c);
 }
 
+/* Long type names shrink with an ellipsis instead of pushing the layout sideways. */
+.chip {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.wo-top > .row-s {
+  flex: none;
+  flex-wrap: nowrap;
+}
+
 .chip.sm {
   height: 26px;
   font-size: 12px;
@@ -574,6 +592,16 @@ input {
 
 .mb-name {
   font-weight: 650;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mb-time,
+.mb-cta,
+.minibar .dot {
+  flex: none;
 }
 
 .mb-time {
@@ -1462,6 +1490,8 @@ input {
 
 .title-row .chip {
   margin-top: 6px;
+  flex: 0 1 auto;
+  max-width: 45%;
 }
 
 .best {

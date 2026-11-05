@@ -7,7 +7,7 @@ async function noHorizontalOverflow(page: Page) {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
-const LONG = 'Shoulders and arms super day'; // 28 characters, under the 32 limit
+const LONG = 'WIDE MEGA WORKOUT WITH MANY WWWW'; // 32 characters (the limit), in wide capitals
 
 test('long names never push the layout sideways @layout', async ({ page }) => {
   const d = seedData();
@@ -19,6 +19,8 @@ test('long names never push the layout sideways @layout', async ({ page }) => {
   await page.getByRole('button', { name: `Start ${LONG}` }).click();
   await noHorizontalOverflow(page);
   await expect(page.getByRole('button', { name: 'Open weights' })).toBeInViewport({ ratio: 1 });
+  await expect(page.getByText('Screen on')).toBeInViewport({ ratio: 1 });
+  await page.screenshot({ path: `test-results/screens/${test.info().project.name}/30-long-name-workout.png` });
   await startRest(page);
   await noHorizontalOverflow(page);
   await page.getByRole('button', { name: 'Open weights' }).click();
