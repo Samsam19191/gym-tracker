@@ -47,6 +47,8 @@ test.beforeEach(async () => {
 });
 
 test.afterEach(async () => {
+  // The browser keeps connections alive; drop them or close() waits until the test times out.
+  server.closeAllConnections();
   await new Promise<void>((r) => server.close(() => r()));
   rmSync(root, { recursive: true, force: true });
 });
