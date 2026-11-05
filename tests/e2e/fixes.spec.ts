@@ -135,10 +135,52 @@ test('the summary ignores the tap from the finger that held "end"', async ({ pag
   await page.getByRole('button', { name: 'Start Push' }).click();
   await holdToEnd(page);
   const save = page.getByRole('button', { name: 'Save workout' });
-  // A click with no touch starting on the summary (what the lifted finger produces) does nothing.
-  await save.dispatchEvent('click');
+  // A finger click (detail 1) whose touch didn't start on the summary, like the lifted finger, does nothing.
+  await save.dispatchEvent('click', { detail: 1 });
   await expect(page.getByText('Workout complete')).toBeVisible();
   await save.click();
   await expect(page.getByText('Ready to train?')).toBeVisible();
   expect((await stored(page)).workouts).toHaveLength(1);
+});
+
+test('summary buttons work from the keyboard / assistive technology', async ({ page }) => {
+  await openApp(page);
+  await page.getByRole('button', { name: 'Start Push' }).click();
+  await holdToEnd(page);
+  await page.getByRole('button', { name: 'Save workout' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Ready to train?')).toBeVisible();
+  expect((await stored(page)).workouts).toHaveLength(1);
+});
+
+test('ending during a rest then going back brings the rest timer back', async ({ page }) => {
+  await openApp(page);
+  await page.getByRole('button', { name: 'Start Push' }).click();
+  await startRest(page);
+  await page.clock.fastForward(20_000);
+  await holdToEnd(page);
+  await page.getByRole('button', { name: 'Back to workout' }).click();
+  await expect(page.getByTestId('rest-clock')).toHaveText(/^0:2\d$/);
+  await expect(page.getByTestId('set-count')).toHaveText('1');
+});
+
+test('set-aside data can be saved from Settings after damaged data', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'canShare', { value: () => false, configurable: true });
+  });
+  await page.clock.install({ time: new Date('2026-11-05T18:30:00+01:00') });
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('seeded')) {
+      localStorage.setItem('gym-tracker:data', '{"version":1,"types":');
+      sessionStorage.setItem('seeded', '1');
+    }
+  });
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Settings' }).click();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save the set-aside copy' }).click();
+  expect((await download).suggestedFilename()).toBe('gym-tracker-set-aside-2026-11-05.json');
+  await page.getByRole('button', { name: 'Delete the set-aside copy' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
+  await expect(page.getByRole('button', { name: 'Save the set-aside copy' })).toBeHidden();
 });

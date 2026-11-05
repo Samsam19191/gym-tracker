@@ -17,9 +17,10 @@ export function Summary() {
   const exercises = cleanExercises(a.exercises);
   const rest = avgRest(exercises);
   // The finger that held "end workout" lifts on this screen: only react to touches that start here.
+  // Keyboard and assistive-technology clicks (detail 0) have no touch, so they always count.
   const touched = useRef(false);
-  const guard = (fn: () => void) => () => {
-    if (touched.current) fn();
+  const guard = (fn: () => void) => (e: MouseEvent) => {
+    if (touched.current || e.detail === 0) fn();
   };
 
   const discard = async () => {

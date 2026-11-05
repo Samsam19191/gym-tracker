@@ -105,6 +105,12 @@ test('a new deploy shows "Update" (after the workout) and installs fresh files @
   await page.getByRole('button', { name: 'Discard workout' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Discard' }).click();
   await expect(banner).toBeVisible();
+  // It must not cover the header buttons or the tab bar.
+  const b = (await banner.boundingBox())!;
+  const gear = (await page.getByRole('button', { name: 'Settings' }).boundingBox())!;
+  const nav = (await page.getByRole('navigation', { name: 'Main' }).boundingBox())!;
+  expect(b.y).toBeGreaterThan(gear.y + gear.height);
+  expect(b.y + b.height).toBeLessThanOrEqual(nav.y);
 
   await Promise.all([page.waitForEvent('load'), banner.getByRole('button', { name: 'Update' }).click()]);
   await expect(page.getByText('Ready to train?')).toBeVisible();

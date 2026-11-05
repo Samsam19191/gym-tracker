@@ -1,5 +1,8 @@
 import { useState } from 'preact/hooks';
 import { liveTypes } from '../../lib/catalog';
+import { dayKey } from '../../lib/dates';
+import { clearSetAside, exportSetAside, setAsideKeys } from '../../lib/storage';
+import { saveTextFile } from '../../platform/files';
 import { createDefaultData } from '../../lib/defaults';
 import { fmtDayMonth } from '../../lib/format';
 import type { Settings as SettingsT, WorkoutType } from '../../lib/model';
@@ -19,6 +22,18 @@ export function Settings({ onClose }: { onClose: () => void }) {
   const set = (patch: Partial<SettingsT>) => dispatch((x) => ({ ...x, settings: { ...x.settings, ...patch } }));
   const types = liveTypes(d);
   const s = d.settings;
+  const [, refresh] = useState(0);
+  const setAside = setAsideKeys(window.localStorage);
+
+  const saveSetAside = async () => {
+    await saveTextFile(exportSetAside(window.localStorage), `gym-tracker-set-aside-${dayKey(Date.now())}.json`);
+  };
+  const removeSetAside = async () => {
+    const ok = await confirmDialog({ title: 'Delete the set-aside copy?', message: 'Save it first if you might need it.', confirmLabel: 'Delete', danger: true });
+    if (!ok) return;
+    clearSetAside(window.localStorage);
+    refresh((n) => n + 1);
+  };
 
   const eraseAll = async () => {
     if (d.active) {
@@ -100,6 +115,23 @@ export function Settings({ onClose }: { onClose: () => void }) {
         </button>
       </div>
       <div class="gnote">{s.lastBackupAt ? `Last backup: ${fmtDayMonth(s.lastBackupAt, Date.now())}` : 'No backup yet.'} Your data only lives on this phone. Save the file to Files or iCloud Drive.</div>
+
+      {setAside.length > 0 && (
+        <>
+          <div class="glabel">Set-aside data</div>
+          <div class="group">
+            <button type="button" class="grow" onClick={() => void saveSetAside()}>
+              <Icon name="export" />
+              Save the set-aside copy
+            </button>
+            <button type="button" class="grow danger-text" onClick={() => void removeSetAside()}>
+              <Icon name="trash" />
+              Delete the set-aside copy
+            </button>
+          </div>
+          <div class="gnote">Saved data that couldn't be fully read was kept here, in case you need it.</div>
+        </>
+      )}
 
       <div class="glabel">Danger zone</div>
       <div class="group">

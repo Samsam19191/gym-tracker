@@ -2,7 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { createDefaultData } from '../lib/defaults';
 import type { AppData } from '../lib/model';
 import { loadData, saveData, STORAGE_KEY } from '../lib/storage';
-import { parseAppData } from '../lib/validate';
+import { parseAppDataLenient } from '../lib/validate';
 import { toast } from './toast';
 
 let data: AppData = createDefaultData();
@@ -18,7 +18,7 @@ export function initStore(): string | null {
   window.addEventListener('storage', (e) => {
     if (e.key !== STORAGE_KEY || e.newValue === null) return;
     try {
-      data = parseAppData(JSON.parse(e.newValue));
+      data = parseAppDataLenient(JSON.parse(e.newValue)).data;
       emit();
     } catch {
       /* another tab wrote something unreadable: keep ours */

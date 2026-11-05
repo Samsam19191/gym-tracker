@@ -89,8 +89,14 @@ input {
   min-height: 100dvh;
 }
 
-.has-minibar .screen {
+.has-minibar .screen,
+.has-update .screen {
   padding-bottom: calc(var(--safe-bottom) + var(--tabbar-h) + 100px);
+}
+
+/* Settings has no tab bar: the banner sits at the bottom edge there. */
+.no-tabbar .update {
+  bottom: calc(var(--safe-bottom) + 14px);
 }
 
 .spread {
@@ -501,7 +507,7 @@ input {
   position: fixed;
   left: 16px;
   right: 16px;
-  top: calc(var(--safe-top) + 10px);
+  bottom: calc(var(--safe-bottom) + var(--tabbar-h) + 14px);
   z-index: 60;
   display: flex;
   align-items: center;

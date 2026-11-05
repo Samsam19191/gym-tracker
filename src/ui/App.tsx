@@ -58,9 +58,8 @@ function ToastHost() {
 }
 
 /** Waits until no workout is in progress, so it never sits on top of the workout buttons. */
-function UpdateBanner({ hidden }: { hidden: boolean }) {
-  const available = useUpdateAvailable();
-  if (!available || hidden) return null;
+function UpdateBanner({ show }: { show: boolean }) {
+  if (!show) return null;
   return (
     <div class="update" role="status">
       <span>A new version is ready</span>
@@ -78,6 +77,7 @@ export function App({ startupWarning }: { startupWarning: string | null }) {
   const [warning, setWarning] = useState(startupWarning);
   const a = d.active;
   const running = !!a && a.endedAt === null;
+  const showUpdate = useUpdateAvailable() && !a;
 
   useEffect(() => {
     setKeepAwake(running && d.settings.keepScreenOn);
@@ -105,7 +105,7 @@ export function App({ startupWarning }: { startupWarning: string | null }) {
   const showMiniBar = !!a && !inWorkout;
 
   return (
-    <div class={showMiniBar ? 'app has-minibar' : 'app'}>
+    <div class={['app', showMiniBar ? 'has-minibar' : '', showUpdate ? 'has-update' : '', showTabBar ? '' : 'no-tabbar'].filter(Boolean).join(' ')}>
       {warning && (
         <div class="banner error" role="alert">
           <Icon name="warn" />
@@ -129,7 +129,7 @@ export function App({ startupWarning }: { startupWarning: string | null }) {
           ))}
         </nav>
       )}
-      <UpdateBanner hidden={!!a} />
+      <UpdateBanner show={showUpdate} />
       <RestBeeper />
       <ToastHost />
       <DialogHost />

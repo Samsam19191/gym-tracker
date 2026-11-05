@@ -104,10 +104,11 @@ function keepValid<T>(items: unknown[], parse: (v: unknown, i: number) => T): { 
  * Like parseAppData, but one damaged record (a workout, a weight...) is skipped instead of
  * making everything unreadable. Only a broken overall structure still throws.
  */
-export function parseAppDataLenient(raw: unknown): { data: AppData; dropped: number } {
+export function parseAppDataLenient(raw: unknown): { data: AppData; dropped: number; lostActive: boolean } {
   if (!isObj(raw)) fail('not an object');
   if (raw.version !== 1) fail(`unsupported version ${String(raw.version)}`);
-  const types = keepValid(arr(raw.types, 'workout types'), type);
+  // A kind this version doesn't know (from a newer version) is kept as a gym type rather than dropped.
+  const types = keepValid(arr(raw.types, 'workout types'), (v, i) => type(isObj(v) && v.kind !== 'activity' ? { ...v, kind: 'gym' } : v, i));
   const workouts = keepValid(arr(raw.workouts, 'workouts'), workout);
   const machines = keepValid(arr(raw.machines, 'machines'), machine);
   const weights = keepValid(arr(raw.weights, 'weights'), weight);
@@ -122,5 +123,6 @@ export function parseAppDataLenient(raw: unknown): { data: AppData; dropped: num
   return {
     data: { version: 1, types: types.ok, workouts: workouts.ok, machines: machines.ok, weights: weights.ok, active: activeWorkout, settings: settings(raw.settings) },
     dropped,
+    lostActive: activeBad === 1,
   };
 }

@@ -93,12 +93,13 @@ export function nextExercise(d: AppData): AppData {
 
 /**
  * The last set is counted by tapping Start rest, so a rest is almost always running at the end.
- * That time isn't a rest between sets, so it is dropped instead of skewing the average.
+ * That time isn't a rest between sets, so it is never recorded. It stays open (unrecorded) so that
+ * "Back to workout" brings the rest timer back.
  */
 export function endWorkout(d: AppData, now: number): AppData {
   const a = d.active;
   if (!isRunning(a)) return d;
-  return withActive(d, { ...a, rest: null, endedAt: Math.max(now, a.start) });
+  return withActive(d, { ...a, endedAt: Math.max(now, a.start) });
 }
 
 export function resumeWorkout(d: AppData): AppData {

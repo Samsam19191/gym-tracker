@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyImport, backupFileName, makeBackup, markBackedUp, readBackup, shouldRemindBackup, snoozeBackup } from '../../src/lib/backup';
 import { createDefaultData } from '../../src/lib/defaults';
 import type { AppData } from '../../src/lib/model';
-import { loadData, saveData, STORAGE_KEY } from '../../src/lib/storage';
+import { clearSetAside, exportSetAside, loadData, saveData, setAsideKeys, STORAGE_KEY } from '../../src/lib/storage';
 import { parseAppData, parseAppDataLenient } from '../../src/lib/validate';
 import {
   addMachine,
@@ -165,6 +165,25 @@ describe('validation', () => {
     expect(() => parseAppDataLenient({ version: 1 })).toThrow(/workout types/);
   });
 
+  it('a workout type kind from a newer version is kept as a gym type', () => {
+    const raw = JSON.parse(JSON.stringify(createDefaultData()));
+    raw.types.push({ id: 'cardio', name: 'Cardio', color: '#fff', order: 9, kind: 'cardio' });
+    const { data, dropped } = parseAppDataLenient(raw);
+    expect(dropped).toBe(0);
+    expect(data.types.find((t) => t.id === 'cardio')).toMatchObject({ kind: 'gym', name: 'Cardio' });
+  });
+
+  it('set-aside copies can be listed, exported and cleared', () => {
+    const s = new MemStorage();
+    s.setItem(STORAGE_KEY, '{broken');
+    loadData(s, NOW);
+    expect(setAsideKeys(s)).toEqual([`${STORAGE_KEY}:corrupt:${NOW}`]);
+    expect(JSON.parse(exportSetAside(s))).toEqual({ [`${STORAGE_KEY}:corrupt:${NOW}`]: '{broken' });
+    clearSetAside(s);
+    expect(setAsideKeys(s)).toEqual([]);
+    expect(s.getItem(STORAGE_KEY)).toBe('{broken');
+  });
+
   it('a damaged current workout is dropped, the rest is kept', () => {
     const raw = JSON.parse(JSON.stringify(withMachine()));
     raw.active = { typeId: 'push', start: 'yesterday' };
@@ -288,7 +307,7 @@ describe('storage', () => {
     raw.weights.push({ id: 'z', machineId: 'm1', date: '2026-11-02', kg: 0 });
     s.setItem(STORAGE_KEY, JSON.stringify(raw));
     const r = loadData(s, NOW);
-    expect(r.warning).toBe('1 damaged record was skipped. Everything else is fine.');
+    expect(r.warning).toBe('1 damaged record was skipped. The rest of your data is safe, and a copy was set aside (Settings).');
     expect(r.data.weights.map((w) => w.id)).toEqual(['a']);
     expect(r.data.machines).toHaveLength(1);
     expect(JSON.parse(s.getItem(`${STORAGE_KEY}:corrupt:${NOW}`)!).weights).toHaveLength(2);

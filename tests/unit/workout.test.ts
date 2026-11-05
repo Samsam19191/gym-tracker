@@ -171,14 +171,23 @@ describe('next exercise', () => {
 });
 
 describe('ending, resuming, saving', () => {
-  it('ending keeps the last set but drops the open rest (it is not a rest between sets)', () => {
+  it('ending keeps the last set and never records the open rest (it is not a rest between sets)', () => {
     let d = startRest(started(), T0 + 10 * S);
     d = endRest(d, T0 + 70 * S);
     d = startRest(d, T0 + 120 * S);
     d = endWorkout(d, T0 + 900 * S);
     expect(d.active!.endedAt).toBe(T0 + 900 * S);
-    expect(d.active!.rest).toBeNull();
     expect(d.active!.exercises[0]).toEqual({ sets: 2, rests: [60 * S] });
+    expect(activeToWorkout(d.active!, 'w')!.exercises).toEqual([{ sets: 2, rests: [60 * S] }]);
+  });
+
+  it('back to workout after ending during a rest brings the rest timer back', () => {
+    let d = startRest(started(), T0 + 10 * S);
+    d = endWorkout(d, T0 + 40 * S);
+    d = resumeWorkout(d);
+    expect(d.active!.rest).toEqual({ start: T0 + 10 * S, exercise: 0 });
+    d = endRest(d, T0 + 100 * S);
+    expect(d.active!.exercises[0]).toEqual({ sets: 1, rests: [90 * S] });
   });
 
   it('no actions are possible on an ended workout', () => {
