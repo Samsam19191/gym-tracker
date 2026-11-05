@@ -1,0 +1,26 @@
+{
+  "name": "gym-tracker",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "test": "TZ=Europe/Paris vitest run",
+    "test:watch": "TZ=Europe/Paris vitest",
+    "e2e": "playwright test",
+    "icons": "node scripts/make-icons.mjs"
+  },
+  "dependencies": {
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@preact/preset-vite": "^2.10.6",
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.7",
+    "vitest": "^4.1.12"
+  }
+}
