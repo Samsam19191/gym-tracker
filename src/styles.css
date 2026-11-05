@@ -979,18 +979,20 @@ input {
 }
 
 .wo-actions {
-  margin-top: auto;
+  flex: 1;
   padding-top: 18px;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   gap: 6px;
 }
 
+/* Grows into the free space: the bigger the target, the easier to hit with the phone on a bench. */
 .bigbtn {
   width: 100%;
+  flex: 1;
   min-height: 150px;
-  height: 22vh;
-  max-height: 210px;
+  max-height: 290px;
   border-radius: 38px;
   display: flex;
   flex-direction: column;
