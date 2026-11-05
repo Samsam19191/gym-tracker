@@ -22,6 +22,13 @@ It's a web app you add to your Home Screen. **All data stays on the phone.**
 - **Weights:** every machine with your best weight and a trend line. Log a weight in two taps (one entry per day, the highest is kept), see your progress chart, delete entries, rename or delete machines.
 - **Settings:** add, rename, recolor, reorder and delete workout types; rest target; export and import a backup file.
 
+## Good to know on iPhone
+
+- **Timers never drift:** they are based on start times, so locking the phone or closing the app doesn't affect them.
+- **Screen on:** uses the Screen Wake Lock API (Home Screen apps need iOS 18.4 or later). The workout screen shows "Screen on", or "Screen may sleep" if iOS refuses.
+- **Rest sound:** plays only while the app is open, and follows the silent switch. The ring and the "Rest done" label always show.
+- **Mistakes:** `−1` undoes the last set, or an accidental "Next exercise". Workouts, weights, machines and types can all be edited or deleted.
+
 ## Updates
 
 Every push to `main` runs all the tests and, if they pass, publishes the new version.
