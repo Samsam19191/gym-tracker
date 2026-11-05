@@ -74,7 +74,7 @@ export function History() {
         ]}
       />
 
-      <div class="cal" role="grid" aria-label={`Calendar ${fmtMonthYear(ym.year, ym.month)}`}>
+      <div class="cal" role="group" aria-label={`Calendar ${fmtMonthYear(ym.year, ym.month)}`}>
         <div class="cal-h" aria-hidden="true">
           {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((x, i) => (
             <span key={i}>{x}</span>
