@@ -217,7 +217,22 @@ test.describe('live workout', () => {
     await page.getByRole('button', { name: 'Start Push' }).click();
     await startRest(page);
     await expect(page.getByTestId('rest-clock')).toBeVisible();
-    await expect(page.getByText(/target/)).toBeHidden();
+    await expect(page.getByText(/target \d/)).toBeHidden();
+    await expect(page.getByRole('button', { name: 'No rest target, tap to set one' })).toBeVisible();
+  });
+
+  test('change the rest target in the middle of a rest', async ({ page }) => {
+    await openApp(page);
+    await page.getByRole('button', { name: 'Start Push' }).click();
+    await startRest(page);
+    await page.getByRole('button', { name: 'Rest target 1:30, tap to change' }).click();
+    await sheet(page, 'Rest target').getByRole('radio', { name: '1:00' }).click();
+    await expect(page.getByText('target 1:00')).toBeVisible();
+    await page.clock.fastForward(61_000);
+    await expect(page.getByText('Rest done')).toBeVisible();
+    // The rest itself kept running while the sheet was open.
+    await expect(page.getByTestId('rest-clock')).toHaveText(/^1:0\d$/);
+    expect((await stored(page)).settings.restTargetSec).toBe(60);
   });
 
   test('weights during a workout: open them and come back, timers keep running', async ({ page }) => {

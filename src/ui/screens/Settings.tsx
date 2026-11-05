@@ -1,17 +1,16 @@
 import { useState } from 'preact/hooks';
 import { liveTypes } from '../../lib/catalog';
-import { createDefaultData, REST_TARGET_OPTIONS } from '../../lib/defaults';
-import { fmtClock, fmtDayMonth } from '../../lib/format';
+import { createDefaultData } from '../../lib/defaults';
+import { fmtDayMonth } from '../../lib/format';
 import type { Settings as SettingsT, WorkoutType } from '../../lib/model';
 import { exportBackup, importBackup } from '../backupActions';
-import { Sheet, SheetHeader, Toggle } from '../components';
+import { Toggle } from '../components';
 import { confirmDialog } from '../dialog';
 import { Icon } from '../icons';
+import { RestTargetSheet, restLabel } from '../sheets/RestTargetSheet';
 import { TypeSheet } from '../sheets/TypeSheet';
 import { dispatch, useData } from '../store';
 import { toast } from '../toast';
-
-const restLabel = (s: number | null) => (s === null ? 'Off' : fmtClock(s * 1000));
 
 export function Settings({ onClose }: { onClose: () => void }) {
   const d = useData();
@@ -113,30 +112,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
       <div class="version">Version {__APP_VERSION__}</div>
 
       {typeSheet && <TypeSheet editing={typeSheet.editing} onClose={() => setTypeSheet(null)} />}
-      {restSheet && (
-        <Sheet label="Rest target" onClose={() => setRestSheet(false)}>
-          <SheetHeader title="Rest target" onCancel={() => setRestSheet(false)} cancelLabel="Close" />
-          <div class="form-note">During a rest, the ring fills up and a sound plays when you reach this time.</div>
-          <div class="group" role="radiogroup" aria-label="Rest target">
-            {REST_TARGET_OPTIONS.map((opt) => (
-              <button
-                type="button"
-                role="radio"
-                aria-checked={s.restTargetSec === opt}
-                class="grow"
-                key={String(opt)}
-                onClick={() => {
-                  set({ restTargetSec: opt });
-                  setRestSheet(false);
-                }}
-              >
-                {restLabel(opt)}
-                <span class="r">{s.restTargetSec === opt && <Icon name="check" />}</span>
-              </button>
-            ))}
-          </div>
-        </Sheet>
-      )}
+      {restSheet && <RestTargetSheet onClose={() => setRestSheet(false)} />}
     </main>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { typeById } from '../../lib/catalog';
 import { fmtClock, plural } from '../../lib/format';
 import type { ActiveWorkout } from '../../lib/model';
@@ -7,6 +7,7 @@ import { playRestBeep, unlockAudio } from '../../platform/sound';
 import { nudgeKeepAwake, useWakeStatus } from '../../platform/wakelock';
 import { HoldButton, IconButton, TypeChip } from '../components';
 import { Icon } from '../icons';
+import { RestTargetSheet } from '../sheets/RestTargetSheet';
 import { dispatch, useData, useNow } from '../store';
 
 const R = 108;
@@ -41,6 +42,7 @@ export function WorkoutScreen({ onOpenWeights }: { onOpenWeights: () => void }) 
   const d = useData();
   const a = d.active!;
   const now = useNow(250);
+  const [targetSheet, setTargetSheet] = useState(false);
   const type = typeById(d, a.typeId);
   const cur = currentExercise(a);
   const exNumber = a.exercises.length;
@@ -127,7 +129,9 @@ export function WorkoutScreen({ onOpenWeights }: { onOpenWeights: () => void }) 
               <div class="rclock num" data-testid="rest-clock">
                 {fmtClock(restMs)}
               </div>
-              {targetMs !== null && <div class="small muted">target {fmtClock(targetMs)}</div>}
+              <button type="button" class="target-btn" onClick={() => setTargetSheet(true)} aria-label={targetMs !== null ? `Rest target ${fmtClock(targetMs)}, tap to change` : 'No rest target, tap to set one'}>
+                {targetMs !== null ? `target ${fmtClock(targetMs)}` : 'set a target'}
+              </button>
             </div>
           </div>
           <div class="card setcard compact">{counter}</div>
@@ -148,6 +152,7 @@ export function WorkoutScreen({ onOpenWeights }: { onOpenWeights: () => void }) 
         )}
         <HoldButton label="Hold to end workout" hint="Press and hold to end the workout" onDone={() => dispatch((x) => endWorkout(x, Date.now()))} />
       </div>
+      {targetSheet && <RestTargetSheet onClose={() => setTargetSheet(false)} />}
       <span class="sr-only">{plural(a.exercises.reduce((n, e) => n + e.sets, 0), 'set')} so far</span>
     </main>
   );

@@ -947,6 +947,15 @@ input {
   gap: 2px;
 }
 
+.target-btn {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 4px 10px;
+  border-radius: 10px;
+  text-decoration: underline dotted rgba(140, 140, 150, 0.5);
+  text-underline-offset: 3px;
+}
+
 .rest-label {
   color: var(--rest);
 }
